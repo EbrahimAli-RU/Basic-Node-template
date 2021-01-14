@@ -5,16 +5,12 @@ const cors = require('cors')
 const bodyparser = require('body-parser')
 
 const authRouter = require('./router/user')
+const globalErrorHandler = require('./utils/globalErrorHandler')
+const appError = require('./utils/appError')
 
 app.use(cors())
 app.use(bodyparser.json())
 app.use(bodyparser.urlencoded({ extended: true }))
-
-// app.get('/', (req, res) => {
-//     res.status(200).json({
-//         message: 'TESTING'
-//     })
-// })
 
 if (process.env.NODE_ENV === "development") {
     app.use(morgan('dev'))
@@ -23,24 +19,12 @@ if (process.env.NODE_ENV === "development") {
 app.use('/api/v1/user', authRouter)
 
 app.all(`*`, (req, res, next) => {
-    // res.status(404).json({
-    //     status: `fail`,
-    //     message: `Can't find ${req.originalUrl} on this server`
-    // })
-    const err = new Error(`Can't find ${req.originalUrl} on this server`)
-    err.statusCode = 404
-    err.status = `fail`
-    next(err)
+    // const err = new Error()
+    // err.statusCode = 404
+    // err.status = `fail`
+    next(new appError(`Can't find ${req.originalUrl} on this server`, 404))
 })
 
-app.use((err, req, res, next) => {
-    const statusCode = err.statusCode || 500
-    const status = err.status || 'error'
-    res.status(statusCode).json({
-        status,
-        message: err.message
-    })
-    next()
-})
+app.use(globalErrorHandler)
 
 module.exports = app;
