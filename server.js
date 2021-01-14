@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const app = require('./app')
 
 //Connect Database
-mongoose.connect('mongodb://localhost:27017/template', {
+const DB = process.env.MONGODB_LOCAL_URL
+mongoose.connect(DB, {
     useNewUrlParser: true,
     useCreateIndex: true,
     useFindAndModify: false,
