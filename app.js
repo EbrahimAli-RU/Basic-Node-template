@@ -5,7 +5,7 @@ const cors = require('cors')
 const bodyparser = require('body-parser')
 
 const authRouter = require('./router/user')
-const globalErrorHandler = require('./utils/globalErrorHandler')
+const globalErrorHandler = require('./controller/errorController')
 const appError = require('./utils/appError')
 
 app.use(cors())
@@ -19,9 +19,6 @@ if (process.env.NODE_ENV === "development") {
 app.use('/api/v1/user', authRouter)
 
 app.all(`*`, (req, res, next) => {
-    // const err = new Error()
-    // err.statusCode = 404
-    // err.status = `fail`
     next(new appError(`Can't find ${req.originalUrl} on this server`, 404))
 })
 
