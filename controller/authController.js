@@ -5,10 +5,10 @@ const catchAsync = require('../utils/catchAsync')
 const appError = require('../utils/appError')
 const sendMail = require('../utils/email')
 const { dataValidity, validateEmail } = require('../utils/validity')
-exports.register = catchAsync(async (req, res, next) => {
 
+exports.register = catchAsync(async (req, res, next) => {
     const { userName, email, password, confirmPassword } = req.body
-    const result = dataValidity(userName.trim(), email.trim(), password.trim(), confirmPassword.trim())
+    const result = dataValidity(userName.trim(), email.trim().toLowerCase(), password.trim(), confirmPassword.trim())
     if (result) {
         return next(new appError(result.message, result.statusCode))
     }
@@ -39,7 +39,8 @@ exports.activation = catchAsync(async (req, res, next) => {
             switch (err.name) {
                 case 'TokenExpiredError':
                     return next(new appError(`This token is no longer valid`, 400))
-                // case ''
+                case 'JsonWebTokenError':
+                    return next(new appError(`Not a Valid Token`, 400))
             }
         } else {
             const newUser = await User.create({
