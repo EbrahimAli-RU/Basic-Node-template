@@ -7,6 +7,8 @@ const bodyparser = require('body-parser')
 const authRouter = require('./router/user')
 const globalErrorHandler = require('./controller/errorController')
 const appError = require('./utils/appError')
+const email = require('./utils/email')
+
 
 app.use(cors())
 app.use(bodyparser.json())

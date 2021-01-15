@@ -30,21 +30,22 @@ const handleMongoDuplicateKeyError = (err) => {
     return new appError(message, 400)
 }
 
+const handleMongoValidatorError = err => {
+    return new appError(err.message, 400)
+}
+
 
 module.exports = (err, req, res, next) => {
-
     err.statusCode = err.statusCode || 500
     err.status = err.status || 'error'
-
     if (process.env.NODE_ENV === 'development') {
         sendErrorDev(err, res);
 
     } else if (process.env.NODE_ENV === 'production') {
-        let error = { ...err }
-        if (error.code === 11000) error = handleMongoDuplicateKeyError(error)
-        sendErrorProd(error, res)
+        if (err.code === 11000) err = handleMongoDuplicateKeyError(err)
+        if (err.name === 'ValidationError') err = handleMongoValidatorError(err)
+
+        sendErrorProd(err, res)
     }
-
-
     next()
 }

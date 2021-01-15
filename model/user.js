@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
     userName: {
         type: String,
         trim: true,
-        required: [true, `Username is required`]
+        required: [true, `Username is required`],
     },
     email: {
         type: String,
@@ -21,6 +21,18 @@ const userSchema = new mongoose.Schema({
         required: [true, `Password is required`],
         minlength: 8,
         maxlength: 20
+    },
+    confirmPassword: {
+        type: String,
+        required: [true, `Password is required`],
+        minlength: 8,
+        maxlength: 20,
+        validate: {
+            validator: function (value) {
+                return this.password === value
+            },
+            message: 'Confirm password is not same as password'
+        }
     }
 }, { timestamps: true })
 
@@ -29,6 +41,7 @@ userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) return next();
 
     this.password = await bcrypt.hash(this.password, 12);
+    this.confirmPassword = undefined
     next();
 })
 
