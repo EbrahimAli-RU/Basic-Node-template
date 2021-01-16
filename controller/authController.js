@@ -179,6 +179,26 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     })
 })
 
+exports.updatePassword = catchAsync(async (req, res, next) => {
+    const { currentPassword, password, confirmPassword } = req.body
+    const user = await User.findById(req.user.id).select('+password')
+    if (!(await user.checkPassword(currentPassword, user.password))) {
+        return next(new appError(`Your current password is not valid`, 401))
+    }
+    user.password = password
+    user.confirmPassword = confirmPassword
+    await user.save()
+    res.status(200).json({
+        status: 'success',
+        data: {
+            id: user._id,
+            token: signToken(user._id)
+        }
+
+    })
+
+})
+
 exports.getAllUsers = catchAsync(async (req, res, next) => {
     const users = await User.find()
     res.status(200).json({
