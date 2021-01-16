@@ -29,16 +29,21 @@ exports.register = catchAsync(async (req, res, next) => {
     }, process.env.PRIVATE_KEY, { expiresIn: '15m' })
     const activationUrl = `${process.env.CLIENT_URL}/user/activation/${token}`
 
-    await sendMail({
-        to: email,
-        subject: `Active your account`,
-        txt: `Active Acount`,
-        url: activationUrl
-    })
-    res.status(200).json({
-        status: 'success',
-        message: `Send an Email to ${email}`
-    })
+    try {
+        await sendMail({
+            to: email,
+            subject: `Active your account`,
+            txt: `Active Acount`,
+            url: activationUrl
+        })
+        res.status(200).json({
+            status: 'success',
+            message: `Send an Email to ${email}`
+        })
+    } catch (err) {
+        return next(new appError(`There is an error sending email, please try again later`, 500))
+    }
+
 })
 
 exports.activation = catchAsync(async (req, res, next) => {
@@ -61,7 +66,10 @@ exports.activation = catchAsync(async (req, res, next) => {
 
             res.status(201).json({
                 status: 'success',
-                user: newUser
+                user: {
+                    ...newUser,
+                    token: signToken(newUser._id)
+                }
             })
 
         }
