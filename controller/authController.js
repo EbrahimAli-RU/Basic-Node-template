@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto')
 
 const User = require('../model/user')
 const catchAsync = require('../utils/catchAsync')
@@ -123,4 +124,26 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
         await user.save({ validateBeforeSave: false })
         return next(new appError(`There is an error sending email, please try again later`, 500))
     }
+})
+
+exports.resetPassword = catchAsync(async (req, res, next) => {
+    const { resetToken } = req.body
+    const resethashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const user = await User.findOne({ passwordResetToken: resethashedToken, passwordResetExpire: { $gt: Date.now() } });
+    if (!user) {
+        return next(new appError(`Token is invalid or expired`, 400))
+    }
+    user.password = req.body.password
+    user.confirmPassword = req.body.confirmPassword
+    user.passwordResetToken = undefined
+    user.passwordResetExpire = undefined
+    await user.save()
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            id: user._id,
+            token: signToken(user._id)
+        }
+    })
 })
