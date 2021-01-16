@@ -11,7 +11,7 @@ const sendMail = async options => {
 
     let EmailOption = {
         from: process.env.EMAIL_FROM,
-        to: 'ebrahimali.cse.ru@gmail.com',
+        to: options.to,
         subject: options.subject,
         html:
             `<div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
