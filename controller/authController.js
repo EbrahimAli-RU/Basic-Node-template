@@ -105,16 +105,28 @@ exports.protected = catchAsync(async (req, res, next) => {
     if (!token) {
         return (new appError(`You are not logged in! please login.`, 401))
     }
+    let decodedCopy
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY, async function (err, decoded) {
+        if (err) {
+            switch (err.name) {
+                case 'TokenExpiredError':
+                    return next(new appError(`This token is no longer valid`, 400))
+                case 'JsonWebTokenError':
+                    return next(new appError(`Not a Valid Token`, 400))
+            }
+        } else {
+            const loggedInUser = await User.findById(decoded.id)
+            if (!loggedInUser) {
+                return next(new appError('The user belonging to this token does not exist', 401))
+            }
 
-    const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
-    const loggedInUser = await User.findById(decoded.id)
-    if (!loggedInUser) {
-        return next(new appError('The user belonging to this token does not exist', 401))
-    }
+            req.user = loggedInUser
+            next()
+        }
+    });
 
-    req.user = loggedInUser
-    next()
 })
+
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body
@@ -164,5 +176,13 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
             id: user._id,
             token: signToken(user._id)
         }
+    })
+})
+
+exports.getAllUsers = catchAsync(async (req, res, next) => {
+    const users = await User.find()
+    res.status(200).json({
+        status: 'success',
+        users
     })
 })
