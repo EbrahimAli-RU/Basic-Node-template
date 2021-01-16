@@ -97,6 +97,25 @@ exports.signIn = catchAsync(async (req, res, next) => {
     })
 })
 
+exports.protected = catchAsync(async (req, res, next) => {
+    let token;
+    if (req.headers.authorization || req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1]
+    }
+    if (!token) {
+        return (new appError(`You are not logged in! please login.`, 401))
+    }
+
+    const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
+    const loggedInUser = await User.findById(decoded.id)
+    if (!loggedInUser) {
+        return next(new appError('The user belonging to this token does not exist', 401))
+    }
+
+    req.user = loggedInUser
+    next()
+})
+
 exports.forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body
     const user = await User.findOne({ email });
@@ -127,14 +146,14 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 })
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
-    const { resetToken } = req.body
+    const { resetToken, password, confirmPassword } = req.body
     const resethashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     const user = await User.findOne({ passwordResetToken: resethashedToken, passwordResetExpire: { $gt: Date.now() } });
     if (!user) {
         return next(new appError(`Token is invalid or expired`, 400))
     }
-    user.password = req.body.password
-    user.confirmPassword = req.body.confirmPassword
+    user.password = password
+    user.confirmPassword = confirmPassword
     user.passwordResetToken = undefined
     user.passwordResetExpire = undefined
     await user.save()
