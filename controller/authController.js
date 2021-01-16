@@ -28,7 +28,11 @@ exports.register = catchAsync(async (req, res, next) => {
         confirmPassword
     }, process.env.PRIVATE_KEY, { expiresIn: '15m' })
     const activationUrl = `${process.env.CLIENT_URL}/user/activation/${token}`
+
     await sendMail({
+        to: email,
+        subject: `Active your account`,
+        txt: `Active Acount`,
         url: activationUrl
     })
     res.status(200).json({
@@ -82,4 +86,33 @@ exports.signIn = catchAsync(async (req, res, next) => {
         },
         message: `Logged in Successfully!`
     })
+})
+
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+    const { email } = req.body
+    const user = await User.findOne({ email });
+    if (!user) {
+        return next(new appError(`No user with this email`, 404))
+    }
+    const resetToken = user.createPasswordResetToken()
+    await user.save({ validateBeforeSave: false })
+    const forgotPasswordUrl = `${process.env.CLIENT_URL}/user/forgotPassword/${resetToken}`
+    try {
+        await sendMail({
+            to: email,
+            subject: `Reset your password`,
+            txt: `Reset Password`,
+            url: forgotPasswordUrl
+        })
+
+        res.status(200).json({
+            status: 'success',
+            message: `E-Mail send to to ${email}`
+        })
+    } catch (err) {
+        user.passwordResetToken = undefined
+        user.passwordResetExpire = undefined
+        await user.save({ validateBeforeSave: false })
+        return next(new appError(`There is an error sending email, please try again later`, 500))
+    }
 })
