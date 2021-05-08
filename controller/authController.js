@@ -6,6 +6,7 @@ const catchAsync = require('../utils/catchAsync')
 const appError = require('../utils/appError')
 const sendMail = require('../utils/email')
 const { dataValidity, validateEmail } = require('../utils/validity')
+const { promisify } = require('util')
 
 
 const signToken = id => {
@@ -116,26 +117,15 @@ exports.protected = catchAsync(async (req, res, next) => {
     if (!token) {
         return (new appError(`You are not logged in! please login.`, 401))
     }
-    let decodedCopy
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY, async function (err, decoded) {
-        if (err) {
-            switch (err.name) {
-                case 'TokenExpiredError':
-                    return next(new appError(`This token is no longer valid`, 400))
-                case 'JsonWebTokenError':
-                    return next(new appError(`Not a Valid Token`, 400))
-            }
-        } else {
-            const loggedInUser = await User.findById(decoded.id)
-            if (!loggedInUser) {
-                return next(new appError('The user belonging to this token does not exist', 401))
-            }
 
-            req.user = loggedInUser
-            next()
-        }
-    });
+    const decoded = promisify(jwt.verify)(token, process.env.ACCESS_TOKEN_SECRET_KEY)
+    const loggedInUser = await User.findById(decoded.id)
+    if (!loggedInUser) {
+        return next(new appError('The user belonging to this token does not exist', 401))
+    }
 
+    req.user = loggedInUser
+    next()
 })
 
 
@@ -209,6 +199,18 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     })
 
 })
+
+exports.restrictTo = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            return next(
+                new AppError('You do not have permission to perform this action', 403)
+            );
+        }
+
+        next();
+    };
+};
 
 exports.getAllUsers = catchAsync(async (req, res, next) => {
     const users = await User.find()
