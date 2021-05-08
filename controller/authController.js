@@ -12,7 +12,7 @@ const signToken = id => {
     return jwt.sign({ id }, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: process.env.ACCESS_TOKEN_EXPIRE })
 }
 
-exports.register = catchAsync(async (req, res, next) => {
+exports.registerWithEmailVerification = catchAsync(async (req, res, next) => {
     const { userName, email, password, confirmPassword } = req.body
     const result = dataValidity(userName.trim(), email.trim().toLowerCase(), password.trim(), confirmPassword.trim())
     if (result) {
@@ -75,6 +75,17 @@ exports.activation = catchAsync(async (req, res, next) => {
 
         }
     });
+})
+
+exports.withOutEmailVerificationRegister = catchAsync(async (req, res, next) => {
+    const user = await User.create(req.body)
+
+    res.status(201).json({
+        status: 'success',
+        data: {
+            user
+        }
+    })
 })
 
 exports.signIn = catchAsync(async (req, res, next) => {
